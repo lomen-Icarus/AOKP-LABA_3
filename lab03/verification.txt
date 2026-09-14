@@ -1,0 +1,22 @@
+Проверка проекта bevy-lab03-scene-objects
+Дата: 14 сентября 2026. Среда: Ubuntu 24.04 x86_64, 4 ядра.
+Версии: rustc 1.98.1, cargo 1.98.1, clippy 0.1.98, rustfmt 1.8.0, Bevy 0.19.1.
+
+cargo fmt --check                                   -> OK
+cargo clippy --all-targets -- -D warnings           -> OK, 0 предупреждений (lib, bin, tests, example)
+cargo test                                          -> 8 passed, 0 failed (0.02 s)
+cargo build --example capture                       -> OK
+xvfb-run -a -s "-screen 0 1280x800x24" cargo run --example capture
+   -> exit 0, окно 1000x700, адаптер llvmpipe (Mesa 25.2.8, Vulkan),
+      screenshots/lab03_scene.png, screenshots/lab03_orbit.png
+
+Консоль при старте:
+  Создан объект: позиция Vec3(4.0, 0.0, 0.0),  угол 180°, цвет (1,0,0), носик (-1, 0, 0), в центр: true
+  Создан объект: позиция Vec3(-4.0, 0.0, 0.0), угол 0°,   цвет (0,0,1), носик (1, 0, 0),  в центр: true
+  Создан объект: позиция Vec3(0.0, 0.0, -4.0), угол 90°,  цвет (0,1,0), носик (0, 0, 1),  в центр: true
+  Создан объект: позиция Vec3(0.0, 0.0, 4.0),  угол 270°, цвет (1,1,1), носик (0, 0, -1), в центр: true
+
+Ограничение: физическая клавиатура и монитор недоступны; клавиша R проверена
+автотестом через ButtonInput, кадр с обращением получен включением режима из примера.
+Системные пакеты для безоконного запуска на Linux без GPU: mesa-vulkan-drivers,
+libvulkan1, libxkbcommon-x11-0, xvfb.
