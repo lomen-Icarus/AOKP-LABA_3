@@ -1,0 +1,17 @@
+[package]
+name = "bevy-lab01-color-torus"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+
+[dependencies]
+bevy = { version = "0.19", default-features = false, features = [
+    "3d_bevy_render", "default_app", "std", "bevy_winit", "multi_threaded", "x11",
+] }
+
+[profile.dev]
+opt-level = 1
+debug = 0
+
+[profile.dev.package."*"]
+opt-level = 3
