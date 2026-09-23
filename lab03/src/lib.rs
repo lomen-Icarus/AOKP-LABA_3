@@ -1,5 +1,7 @@
 //! Лабораторная работа №3: размещение графических объектов в составе сцены.
 //! Здесь находятся плагин, список размещений и системы; окно создаёт main.rs.
+//! Основа — лабораторные №1 и №2: тор как модель, цвет в виде `Vec3`,
+//! раздельные системы симуляции и визуализации, порядок через `.chain()`.
 
 use bevy::prelude::*;
 
@@ -7,7 +9,7 @@ pub mod graphic_object;
 #[cfg(test)]
 mod tests;
 
-use graphic_object::{GraphicModel, GraphicObject, spawn_graphic_object, sync_graphic_objects};
+use graphic_object::{GraphicModel, GraphicObject, spawn_graphic_object, update_visual_system};
 
 /// Скорость обращения объектов вокруг центра сцены (дополнительное задание),
 /// градусы в секунду.
@@ -32,9 +34,10 @@ impl Plugin for Lab03Plugin {
             })
             .init_resource::<Orbit>()
             .add_systems(Startup, setup_scene)
+            // Порядок из лабораторной №2: ввод, симуляция, визуализация.
             .add_systems(
                 Update,
-                (toggle_orbit_system, orbit_system, sync_graphic_objects).chain(),
+                (keyboard_system, simulation_system, update_visual_system).chain(),
             );
     }
 }
@@ -80,7 +83,7 @@ fn setup_scene(
     ));
 }
 
-fn toggle_orbit_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Orbit>) {
+fn keyboard_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Orbit>) {
     if keyboard.just_pressed(KeyCode::KeyR) {
         orbit.enabled = !orbit.enabled;
         info!(
@@ -94,9 +97,10 @@ fn toggle_orbit_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Or
     }
 }
 
+/// Система симуляции (как в лабораторной №2): меняет только данные объектов.
 /// Дополнительное задание: параметры размещения меняются каждый кадр,
-/// а `Transform` заново рассчитывает система sync_graphic_objects.
-fn orbit_system(time: Res<Time>, orbit: Res<Orbit>, mut query: Query<&mut GraphicObject>) {
+/// а `Transform` заново рассчитывает система update_visual_system.
+fn simulation_system(time: Res<Time>, orbit: Res<Orbit>, mut query: Query<&mut GraphicObject>) {
     if !orbit.enabled {
         return;
     }

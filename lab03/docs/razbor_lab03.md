@@ -53,7 +53,7 @@
 - `GraphicObject` — компонент с тремя полями: `position`, `angle_deg`, `color`.
 - `to_transform()` и `to_color()` — чистые методы, аналог `recalculateModelMatrix`.
 - `spawn_graphic_object()` — аналог `draw()`: создаёт сущность с мешем, материалом и `Transform`.
-- `sync_graphic_objects` — система с фильтром `Changed<GraphicObject>`. Когда любое поле изменилось, `Transform` и цвет материала пересчитываются. Это замена приватным сеттерам: Bevy сам отслеживает изменения компонента. Проверка: [Changed](https://docs.rs/bevy/0.19.1/bevy/ecs/query/struct.Changed.html).
+- `update_visual_system` — система с фильтром `Changed<GraphicObject>`. Когда любое поле изменилось, `Transform` и цвет материала пересчитываются. Это замена приватным сеттерам: Bevy сам отслеживает изменения компонента. Проверка: [Changed](https://docs.rs/bevy/0.19.1/bevy/ecs/query/struct.Changed.html).
 
 Модель хранится один раз: `GraphicModel` создаёт два меша (тор и носик) и раздаёт handle. Тест `startup_spawns_four_objects_sharing_one_model` проверяет, что в `Assets<Mesh>` ровно два меша при четырёх объектах.
 

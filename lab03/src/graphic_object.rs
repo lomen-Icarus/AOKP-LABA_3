@@ -89,11 +89,12 @@ impl GraphicObject {
     }
 }
 
+/// Система визуализации (как update_visual_system в лабораторной №2).
 /// Аналог recalculateModelMatrix: когда позиция, угол или цвет объекта
 /// изменились, матрица модели (`Transform`) и материал пересчитываются.
 /// Фильтр `Changed` даёт то же, что вызов пересчёта из сеттеров в C++,
 /// но без ручного отслеживания: Bevy сам помечает изменённые компоненты.
-pub fn sync_graphic_objects(
+pub fn update_visual_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query: Query<
         (
