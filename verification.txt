@@ -4,8 +4,8 @@
 
 cargo fmt --check                                     -> OK
 cargo clippy --locked --all-targets -- -D warnings    -> OK, 0 предупреждений
-cargo test --locked                                   -> 28 passed, 0 failed
-   лаба 1: 5, лаба 2: 8, лаба 3: 10, переключение лаб: 5
+cargo test --locked                                   -> 24 passed, 0 failed
+   лаба 1: 5, лаба 2: 8, лаба 3: 6, переключение лаб: 5
 cargo run --locked            (8 с, Xvfb)             -> окно лабы 3, четыре объекта созданы
 cargo run --locked -- 2       (8 с, Xvfb)             -> семь смен цвета с интервалом 1 с
 cargo run --locked -- 1       (8 с, Xvfb)             -> окно лабы 1
@@ -36,10 +36,10 @@ INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab0
 [keyboard] индекс = 0, RGB = (1.00, 1.00, 1.00)
 INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_6_transition.png
 [labs] переход: Lab2 -> Lab3
-Создан объект: GraphicObject { position: Vec3(4.0, 0.0, 0.0), angle_deg: 180.0, color: Vec3(1.0, 0.0, 0.0) }, носик Vec3(-1.0, -0.0, -8.742278e-8), в центр: true
-Создан объект: GraphicObject { position: Vec3(-4.0, 0.0, 0.0), angle_deg: 0.0, color: Vec3(0.0, 0.0, 1.0) }, носик Vec3(1.0, 0.0, 0.0), в центр: true
-Создан объект: GraphicObject { position: Vec3(0.0, 0.0, -4.0), angle_deg: 90.0, color: Vec3(0.0, 1.0, 0.0) }, носик Vec3(0.0, 0.0, 0.99999994), в центр: true
-Создан объект: GraphicObject { position: Vec3(0.0, 0.0, 4.0), angle_deg: 270.0, color: Vec3(1.0, 1.0, 1.0) }, носик Vec3(0.0, 0.0, -0.99999994), в центр: true
+Создан объект: GraphicObject { position: Vec3(4.0, 0.0, 0.0), angle_deg: 180.0, color: Vec3(1.0, 0.0, 0.0) }
+Создан объект: GraphicObject { position: Vec3(-4.0, 0.0, 0.0), angle_deg: 0.0, color: Vec3(0.0, 0.0, 1.0) }
+Создан объект: GraphicObject { position: Vec3(0.0, 0.0, -4.0), angle_deg: 90.0, color: Vec3(0.0, 1.0, 0.0) }
+Создан объект: GraphicObject { position: Vec3(0.0, 0.0, 4.0), angle_deg: 270.0, color: Vec3(1.0, 1.0, 1.0) }
 INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab03_scene.png
 [keyboard] обращение вокруг центра: включено
 INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab03_orbit.png

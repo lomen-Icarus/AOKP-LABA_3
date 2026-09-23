@@ -74,6 +74,7 @@ fn function_keys_switch_scenes_and_clean_up_previous_lab() {
         1,
         "камера прежней лабы удалена"
     );
+    assert_eq!(count::<Mesh3d>(&mut app), 1, "торы и носики лабы 3 удалены");
     assert_eq!(clear_color(&app), Color::srgb(0.22, 0.88, 0.11));
 
     press(&mut app, &[KeyCode::F2]);

@@ -38,7 +38,7 @@ cargo run --locked
 | `src/main.rs` | Окно, выбор лабы, подключение модулей |
 | `src/lab1.rs`, `src/lab2.rs`, `src/lab3.rs` | Код каждой лабы |
 | `src/graphic_object.rs` | Модуль GraphicObject из задания лабы 3 |
-| `src/labN/tests.rs`, `src/tests.rs` | Автотесты лаб и переключения |
+| `src/labN/tests.rs`, `src/tests.rs` | Автотесты лаб и переключения (24 теста) |
 | `examples/capture.rs` | Проход по трём лабам с сохранением кадров |
 | `docs/otchet_labNN.docx` | Отчёты |
 | `docs/razbor_labNN.md` | Учебные разборы с вопросами для защиты |

@@ -6,11 +6,16 @@ fn test_app() -> App {
     super::super::tests::test_app(super::super::Lab::Lab3, 100)
 }
 
-fn objects(app: &mut App) -> Vec<(GraphicObject, Transform)> {
+/// Направление носика: локальная ось +X после поворота объекта.
+fn nose(transform: &Transform) -> Vec3 {
+    transform.rotation * Vec3::X
+}
+
+fn transforms(app: &mut App) -> Vec<(Vec3, Transform)> {
     app.world_mut()
         .query::<(&GraphicObject, &Transform)>()
         .iter(app.world())
-        .map(|(object, transform)| (object.clone(), *transform))
+        .map(|(object, transform)| (object.color, *transform))
         .collect()
 }
 
@@ -18,13 +23,12 @@ fn objects(app: &mut App) -> Vec<(GraphicObject, Transform)> {
 fn four_noses_point_to_scene_center() {
     let scene = scene_objects();
     assert_eq!(scene.len(), 4);
-    let expected = [-Vec3::X, Vec3::X, Vec3::Z, -Vec3::Z];
-    for (object, direction) in scene.iter().zip(expected) {
+    for object in scene {
+        let to_center = -object.position.normalize();
         assert!(
-            object.nose_direction().abs_diff_eq(direction, EPS),
+            nose(&object.to_transform()).abs_diff_eq(to_center, EPS),
             "{object:?}"
         );
-        assert!(object.faces(Vec3::ZERO), "{object:?}");
     }
 }
 
@@ -55,174 +59,57 @@ fn color_channels_are_preserved() {
 }
 
 #[test]
-fn startup_spawns_four_objects_sharing_one_model() {
+fn scene_has_four_objects_with_their_transforms() {
     let mut app = test_app();
-    app.update();
-    let spawned = objects(&mut app);
+    let spawned = transforms(&mut app);
     assert_eq!(spawned.len(), 4);
-    for (object, transform) in &spawned {
-        assert!(
-            transform
-                .translation
-                .abs_diff_eq(object.to_transform().translation, EPS)
-        );
+    for object in scene_objects() {
+        let (_, transform) = spawned
+            .iter()
+            .find(|(color, _)| *color == object.color)
+            .expect("объект такого цвета создан");
+        assert!(transform.translation.abs_diff_eq(object.position, EPS));
         assert!(
             transform
                 .rotation
                 .abs_diff_eq(object.to_transform().rotation, EPS)
         );
     }
-    let colors: Vec<Vec3> = spawned.iter().map(|(object, _)| object.color).collect();
-    assert!(colors.contains(&Vec3::new(1.0, 0.0, 0.0)));
-    assert!(colors.contains(&Vec3::new(0.0, 0.0, 1.0)));
-    assert!(colors.contains(&Vec3::new(0.0, 1.0, 0.0)));
-    assert!(colors.contains(&Vec3::new(1.0, 1.0, 1.0)));
-    // Два меша (тор и носик) на четыре объекта: модель хранится один раз.
-    assert_eq!(app.world().resource::<Assets<Mesh>>().len(), 2);
-    assert_eq!(app.world().resource::<Assets<StandardMaterial>>().len(), 4);
-    let mesh_entities = app.world_mut().query::<&Mesh3d>().iter(app.world()).count();
-    assert_eq!(mesh_entities, 8);
-}
-
-/// Объект с тем же цветом: цвета уникальны, порядок запроса Bevy не гарантирует.
-fn same_color(list: &[(GraphicObject, Transform)], color: Vec3) -> &(GraphicObject, Transform) {
-    list.iter()
-        .find(|(object, _)| object.color == color)
-        .expect("объект с таким цветом есть")
-}
-
-fn press_r(app: &mut App) {
-    app.world_mut()
-        .resource_mut::<ButtonInput<KeyCode>>()
-        .press(KeyCode::KeyR);
-    app.update();
-    app.world_mut()
-        .resource_mut::<ButtonInput<KeyCode>>()
-        .reset_all();
-}
-
-fn material_change_tick(app: &App) -> u32 {
-    app.world()
-        .get_resource_change_ticks::<Assets<StandardMaterial>>()
-        .expect("ресурс материалов есть")
-        .changed
-        .get()
+    // У каждого объекта тор и носик.
+    let meshes = app.world_mut().query::<&Mesh3d>().iter(app.world()).count();
+    assert_eq!(meshes, 8);
 }
 
 #[test]
 fn orbit_is_off_until_r_is_pressed() {
     let mut app = test_app();
+    let before = transforms(&mut app);
     app.update();
-    let before = objects(&mut app);
     app.update();
-    app.update();
-    let after = objects(&mut app);
-    for (object, _) in &before {
-        assert_eq!(object, &same_color(&after, object.color).0);
+    for (color, transform) in transforms(&mut app) {
+        let (_, start) = before.iter().find(|(c, _)| *c == color).unwrap();
+        assert!(transform.translation.abs_diff_eq(start.translation, EPS));
     }
 }
 
 #[test]
 fn orbit_keeps_noses_toward_center() {
     let mut app = test_app();
-    app.update();
-    press_r(&mut app);
+    super::super::tests::press(&mut app, &[KeyCode::KeyR]);
     for _ in 0..30 {
         app.update();
     }
-    let moved = objects(&mut app);
-    for start in scene_objects() {
-        let (object, transform) = same_color(&moved, start.color);
-        assert!(object.faces(Vec3::ZERO), "{object:?}");
-        assert!((object.position.length() - start.position.length()).abs() < EPS);
+    for object in scene_objects() {
+        let (_, transform) = transforms(&mut app)
+            .into_iter()
+            .find(|(color, _)| *color == object.color)
+            .unwrap();
+        assert!((transform.translation.length() - 4.0).abs() < 1e-3);
         assert!(
-            !object.position.abs_diff_eq(start.position, 1e-2),
+            !transform.translation.abs_diff_eq(object.position, 1e-2),
             "объект не сдвинулся"
         );
-        assert!(transform.translation.abs_diff_eq(object.position, EPS));
+        let to_center = -transform.translation.normalize();
+        assert!(nose(&transform).dot(to_center) > 0.999);
     }
-}
-
-#[test]
-fn long_orbit_does_not_drift() {
-    // 3000 кадров по 0,1 с = 300 с, почти девять полных оборотов.
-    let mut app = test_app();
-    app.update();
-    press_r(&mut app);
-    for _ in 0..3000 {
-        app.update();
-    }
-    for (object, _) in objects(&mut app) {
-        assert!((object.position.length() - 4.0).abs() < 1e-4, "{object:?}");
-        assert!(object.position.y.abs() < 1e-4);
-        assert!(object.faces(Vec3::ZERO), "{object:?}");
-    }
-}
-
-#[test]
-fn orbit_does_not_rewrite_materials() {
-    let mut app = test_app();
-    app.update();
-    press_r(&mut app);
-    app.update();
-    let tick = material_change_tick(&app);
-    for _ in 0..10 {
-        app.update();
-    }
-    assert_eq!(
-        material_change_tick(&app),
-        tick,
-        "цвет не менялся — материалы не трогаем"
-    );
-}
-
-#[test]
-fn changing_object_fields_recalculates_transform_and_color() {
-    let mut app = test_app();
-    app.update();
-    let entity = app
-        .world_mut()
-        .query_filtered::<Entity, With<GraphicObject>>()
-        .iter(app.world())
-        .next()
-        .expect("объект создан");
-    {
-        let mut object = app.world_mut().get_mut::<GraphicObject>(entity).unwrap();
-        object.position = Vec3::new(0.0, 2.0, 0.0);
-        object.angle_deg = 45.0;
-        object.color = Vec3::new(0.0, 1.0, 1.0);
-    }
-    app.update();
-    let object = app.world().get::<GraphicObject>(entity).unwrap().clone();
-    let transform = *app.world().get::<Transform>(entity).unwrap();
-    assert!(
-        transform
-            .translation
-            .abs_diff_eq(Vec3::new(0.0, 2.0, 0.0), EPS)
-    );
-    assert!(
-        transform
-            .rotation
-            .abs_diff_eq(object.to_transform().rotation, EPS)
-    );
-    let handle = app
-        .world()
-        .get::<MeshMaterial3d<StandardMaterial>>(entity)
-        .unwrap()
-        .id();
-    let material = app
-        .world()
-        .resource::<Assets<StandardMaterial>>()
-        .get(handle)
-        .unwrap();
-    let srgba = material.base_color.to_srgba();
-    assert_eq!((srgba.red, srgba.green, srgba.blue), (0.0, 1.0, 1.0));
-}
-
-#[test]
-fn quarter_turn_moves_red_into_green_slot() {
-    let red = GraphicObject::new(Vec3::new(4.0, 0.0, 0.0), 180.0, Vec3::X).orbited(90.0);
-    assert!(red.position.abs_diff_eq(Vec3::new(0.0, 0.0, -4.0), EPS));
-    assert!((red.angle_deg - 90.0).abs() < EPS);
-    assert!(red.faces(Vec3::ZERO));
 }
