@@ -11,4 +11,4 @@ cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 ```
 
-Отчёт и разбор — в `docs/`. Эта работа — основа лабораторных №2 и №3.
+Отчёт `docs/otchet_lab01.docx`, разбор `docs/razbor_lab01.md`. Эта работа — основа лабораторных №2 и №3.

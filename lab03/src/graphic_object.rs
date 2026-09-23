@@ -5,7 +5,7 @@
 use bevy::prelude::*;
 
 /// Внутренний и внешний радиусы тора-модели (аргументы `Torus::new`).
-const TORUS_INNER_RADIUS: f32 = 0.45;
+const TORUS_INNER_RADIUS: f32 = 0.4;
 const TORUS_OUTER_RADIUS: f32 = 1.0;
 /// Размеры «носика»: конус, вершина которого направлена вдоль локальной +X.
 const NOSE_RADIUS: f32 = 0.22;
@@ -80,20 +80,27 @@ impl GraphicObject {
         to_target.length_squared() > 0.0 && self.nose_direction().dot(to_target.normalize()) > 0.999
     }
 
-    /// Поворот размещения вокруг вертикальной оси сцены на `delta_deg`.
-    /// Позиция и носик поворачиваются вместе, поэтому ориентация
-    /// на центр сохраняется.
-    pub fn orbit_around_center(&mut self, delta_deg: f32) {
-        self.position = Quat::from_rotation_y(delta_deg.to_radians()) * self.position;
-        self.angle_deg = (self.angle_deg - delta_deg).rem_euclid(360.0);
+    /// Размещение после обращения вокруг вертикальной оси сцены на `phase_deg`.
+    /// Считается от исходного размещения, а не прибавляется к текущему,
+    /// поэтому ошибки округления не накапливаются: радиус и направление
+    /// носика на центр остаются точными при любой длительности работы.
+    pub fn orbited(&self, phase_deg: f32) -> Self {
+        Self {
+            position: Quat::from_rotation_y(phase_deg.to_radians()) * self.position,
+            angle_deg: (self.angle_deg - phase_deg).rem_euclid(360.0),
+            color: self.color,
+        }
     }
 }
 
-/// Система визуализации (как update_visual_system в лабораторной №2).
-/// Аналог recalculateModelMatrix: когда позиция, угол или цвет объекта
-/// изменились, матрица модели (`Transform`) и материал пересчитываются.
-/// Фильтр `Changed` даёт то же, что вызов пересчёта из сеттеров в C++,
-/// но без ручного отслеживания: Bevy сам помечает изменённые компоненты.
+/// Система визуализации. Роль та же, что у update_visual_system
+/// в лабораторной №2: перенести данные в то, что видит рендерер.
+/// Отличие в условии запуска: здесь реагирует фильтр `Changed<GraphicObject>`
+/// на изменение компонента, а не проверка изменения ресурса.
+/// Аналог recalculateModelMatrix: при изменении позиции или угла
+/// пересчитывается матрица модели (`Transform`). Материал переписывается
+/// только когда цвет действительно другой: запись через `get_mut` помечает
+/// ассет изменённым, и рендерер заново готовит его для GPU.
 pub fn update_visual_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut query: Query<
@@ -107,8 +114,12 @@ pub fn update_visual_system(
 ) {
     for (object, mut transform, material) in &mut query {
         *transform = object.to_transform();
-        if let Some(mut material) = materials.get_mut(material.id()) {
-            material.base_color = object.to_color();
+        let color = object.to_color();
+        let color_changed = materials
+            .get(material.id())
+            .is_some_and(|current| current.base_color != color);
+        if color_changed && let Some(mut current) = materials.get_mut(material.id()) {
+            current.base_color = color;
         }
     }
 }
@@ -127,8 +138,8 @@ pub fn spawn_graphic_object(
         ..default()
     });
     let transform = object.to_transform();
-    info!(
-        "Создан объект: позиция {:?}, угол {:.0}°, цвет {:?}, носик направлен {:?}, в центр: {}",
+    println!(
+        "[scene] создан объект: позиция {:?}, угол {:.0}°, цвет {:?}, носик {:?}, в центр: {}",
         object.position,
         object.angle_deg,
         object.color,

@@ -1,7 +1,8 @@
 //! Лабораторная работа №3: размещение графических объектов в составе сцены.
 //! Здесь находятся плагин, список размещений и системы; окно создаёт main.rs.
-//! Основа — лабораторные №1 и №2: тор как модель, цвет в виде `Vec3`,
-//! раздельные системы симуляции и визуализации, порядок через `.chain()`.
+//! От лабораторных №1 и №2 взяты код и архитектура: модель-тор, цвет в виде
+//! `Vec3`, контейнер `Vec`, системы ввода, симуляции и визуализации в порядке
+//! `.chain()`. Смена цвета по клавишам и таймеру в задание №3 не входит.
 
 use bevy::prelude::*;
 
@@ -14,6 +15,14 @@ use graphic_object::{GraphicModel, GraphicObject, spawn_graphic_object, update_v
 /// Скорость обращения объектов вокруг центра сцены (дополнительное задание),
 /// градусы в секунду.
 const ORBIT_SPEED_DEG: f32 = 30.0;
+
+/// Исходное размещение объекта и накопленный угол обращения вокруг центра.
+/// Текущее размещение каждый кадр вычисляется из исходного.
+#[derive(Component, Debug, Clone)]
+pub struct OrbitAnchor {
+    pub start: GraphicObject,
+    pub phase_deg: f32,
+}
 
 /// Режим обращения объектов вокруг центра сцены. Выключен при запуске,
 /// чтобы кадр совпадал с примером из задания.
@@ -65,7 +74,12 @@ fn setup_scene(
     let model = GraphicModel::new(&mut meshes);
     let graphic_objects: Vec<GraphicObject> = scene_objects();
     for obj in graphic_objects {
-        spawn_graphic_object(&mut commands, &model, &mut materials, obj);
+        let anchor = OrbitAnchor {
+            start: obj.clone(),
+            phase_deg: 0.0,
+        };
+        let entity = spawn_graphic_object(&mut commands, &model, &mut materials, obj);
+        commands.entity(entity).insert(anchor);
     }
     commands.insert_resource(model);
 
@@ -83,11 +97,12 @@ fn setup_scene(
     ));
 }
 
-fn keyboard_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Orbit>) {
+/// Ввод пользователя: клавиша R включает и выключает обращение вокруг центра.
+pub fn keyboard_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Orbit>) {
     if keyboard.just_pressed(KeyCode::KeyR) {
         orbit.enabled = !orbit.enabled;
-        info!(
-            "Обращение вокруг центра: {}",
+        println!(
+            "[keyboard] обращение вокруг центра: {}",
             if orbit.enabled {
                 "включено"
             } else {
@@ -97,15 +112,20 @@ fn keyboard_system(keyboard: Res<ButtonInput<KeyCode>>, mut orbit: ResMut<Orbit>
     }
 }
 
-/// Система симуляции (как в лабораторной №2): меняет только данные объектов.
-/// Дополнительное задание: параметры размещения меняются каждый кадр,
-/// а `Transform` заново рассчитывает система update_visual_system.
-fn simulation_system(time: Res<Time>, orbit: Res<Orbit>, mut query: Query<&mut GraphicObject>) {
+/// Система симуляции: меняет только данные объектов (как в лабораторной №2).
+/// Дополнительное задание: угол обращения растёт со временем, размещение
+/// вычисляется из исходного, а `Transform` пересчитывает update_visual_system.
+pub fn simulation_system(
+    time: Res<Time>,
+    orbit: Res<Orbit>,
+    mut query: Query<(&mut GraphicObject, &mut OrbitAnchor)>,
+) {
     if !orbit.enabled {
         return;
     }
     let delta_deg = ORBIT_SPEED_DEG * time.delta_secs();
-    for mut object in &mut query {
-        object.orbit_around_center(delta_deg);
+    for (mut object, mut anchor) in &mut query {
+        anchor.phase_deg = (anchor.phase_deg + delta_deg).rem_euclid(360.0);
+        *object = anchor.start.orbited(anchor.phase_deg);
     }
 }

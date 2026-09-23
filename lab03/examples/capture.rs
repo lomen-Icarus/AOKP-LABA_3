@@ -1,10 +1,10 @@
 //! Получение кадров реального окна приложения: сначала сцена из задания,
-//! затем та же сцена после включения обращения вокруг центра.
+//! затем та же сцена после нажатия R (обращение вокруг центра).
 //! Запуск: cargo run --example capture (при необходимости под xvfb-run).
 
 use bevy::prelude::*;
 use bevy::render::view::window::screenshot::{Screenshot, save_to_disk};
-use bevy_lab03_scene_objects::{Lab03Plugin, Orbit};
+use bevy_lab03_scene_objects::{Lab03Plugin, keyboard_system};
 
 const SCENE_FRAME: u32 = 40;
 const ORBIT_ON_FRAME: u32 = 60;
@@ -27,24 +27,26 @@ fn main() {
         }))
         .add_plugins(Lab03Plugin)
         .init_resource::<FrameCounter>()
-        .add_systems(Update, capture_system)
+        .add_systems(Update, capture_system.before(keyboard_system))
         .run();
 }
 
 fn capture_system(
     mut commands: Commands,
     mut counter: ResMut<FrameCounter>,
-    mut orbit: ResMut<Orbit>,
+    mut keyboard: ResMut<ButtonInput<KeyCode>>,
     mut exit: MessageWriter<AppExit>,
 ) {
     counter.0 += 1;
+    keyboard.release_all();
     match counter.0 {
         SCENE_FRAME => {
             commands
                 .spawn(Screenshot::primary_window())
                 .observe(save_to_disk("screenshots/lab03_scene.png"));
         }
-        ORBIT_ON_FRAME => orbit.enabled = true,
+        // Нажатие R проходит через keyboard_system, как настоящий ввод.
+        ORBIT_ON_FRAME => keyboard.press(KeyCode::KeyR),
         ORBIT_FRAME => {
             commands
                 .spawn(Screenshot::primary_window())

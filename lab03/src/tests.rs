@@ -97,6 +97,31 @@ fn startup_spawns_four_objects_sharing_one_model() {
     assert_eq!(mesh_entities, 8);
 }
 
+/// Объект с тем же цветом: цвета уникальны, порядок запроса Bevy не гарантирует.
+fn same_color(list: &[(GraphicObject, Transform)], color: Vec3) -> &(GraphicObject, Transform) {
+    list.iter()
+        .find(|(object, _)| object.color == color)
+        .expect("объект с таким цветом есть")
+}
+
+fn press_r(app: &mut App) {
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .press(KeyCode::KeyR);
+    app.update();
+    app.world_mut()
+        .resource_mut::<ButtonInput<KeyCode>>()
+        .reset_all();
+}
+
+fn material_change_tick(app: &App) -> u32 {
+    app.world()
+        .get_resource_change_ticks::<Assets<StandardMaterial>>()
+        .expect("ресурс материалов есть")
+        .changed
+        .get()
+}
+
 #[test]
 fn orbit_is_off_until_r_is_pressed() {
     let mut app = test_app();
@@ -105,8 +130,8 @@ fn orbit_is_off_until_r_is_pressed() {
     app.update();
     app.update();
     let after = objects(&mut app);
-    for ((a, _), (b, _)) in before.iter().zip(&after) {
-        assert_eq!(a, b);
+    for (object, _) in &before {
+        assert_eq!(object, &same_color(&after, object.color).0);
     }
 }
 
@@ -114,19 +139,13 @@ fn orbit_is_off_until_r_is_pressed() {
 fn orbit_keeps_noses_toward_center() {
     let mut app = test_app();
     app.update();
-    app.world_mut()
-        .resource_mut::<ButtonInput<KeyCode>>()
-        .press(KeyCode::KeyR);
-    app.update();
-    app.world_mut()
-        .resource_mut::<ButtonInput<KeyCode>>()
-        .clear();
+    press_r(&mut app);
     for _ in 0..30 {
         app.update();
     }
     let moved = objects(&mut app);
-    let initial = scene_objects();
-    for ((object, transform), start) in moved.iter().zip(&initial) {
+    for start in scene_objects() {
+        let (object, transform) = same_color(&moved, start.color);
         assert!(object.faces(Vec3::ZERO), "{object:?}");
         assert!((object.position.length() - start.position.length()).abs() < EPS);
         assert!(
@@ -135,6 +154,39 @@ fn orbit_keeps_noses_toward_center() {
         );
         assert!(transform.translation.abs_diff_eq(object.position, EPS));
     }
+}
+
+#[test]
+fn long_orbit_does_not_drift() {
+    // 3000 кадров по 0,1 с = 300 с, почти девять полных оборотов.
+    let mut app = test_app();
+    app.update();
+    press_r(&mut app);
+    for _ in 0..3000 {
+        app.update();
+    }
+    for (object, _) in objects(&mut app) {
+        assert!((object.position.length() - 4.0).abs() < 1e-4, "{object:?}");
+        assert!(object.position.y.abs() < 1e-4);
+        assert!(object.faces(Vec3::ZERO), "{object:?}");
+    }
+}
+
+#[test]
+fn orbit_does_not_rewrite_materials() {
+    let mut app = test_app();
+    app.update();
+    press_r(&mut app);
+    app.update();
+    let tick = material_change_tick(&app);
+    for _ in 0..10 {
+        app.update();
+    }
+    assert_eq!(
+        material_change_tick(&app),
+        tick,
+        "цвет не менялся — материалы не трогаем"
+    );
 }
 
 #[test]
@@ -182,8 +234,7 @@ fn changing_object_fields_recalculates_transform_and_color() {
 
 #[test]
 fn quarter_turn_moves_red_into_green_slot() {
-    let mut red = GraphicObject::new(Vec3::new(4.0, 0.0, 0.0), 180.0, Vec3::X);
-    red.orbit_around_center(90.0);
+    let red = GraphicObject::new(Vec3::new(4.0, 0.0, 0.0), 180.0, Vec3::X).orbited(90.0);
     assert!(red.position.abs_diff_eq(Vec3::new(0.0, 0.0, -4.0), EPS));
     assert!((red.angle_deg - 90.0).abs() < EPS);
     assert!(red.faces(Vec3::ZERO));
