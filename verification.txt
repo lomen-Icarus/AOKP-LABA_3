@@ -1,0 +1,48 @@
+Проверка программы bevy-lab03-scene-objects (лабы 1–3)
+Дата: 23 сентября 2026. Среда: Ubuntu 24.04 x86_64, 4 ядра.
+Версии: rustc 1.98.1, cargo 1.98.1, clippy 0.1.98, rustfmt 1.8.0, Bevy 0.19.1.
+
+cargo fmt --check                                     -> OK
+cargo clippy --locked --all-targets -- -D warnings    -> OK, 0 предупреждений
+cargo test --locked                                   -> 28 passed, 0 failed
+   лаба 1: 5, лаба 2: 8, лаба 3: 10, переключение лаб: 5
+cargo run --locked            (8 с, Xvfb)             -> окно лабы 3, четыре объекта созданы
+cargo run --locked -- 2       (8 с, Xvfb)             -> семь смен цвета с интервалом 1 с
+cargo run --locked -- 1       (8 с, Xvfb)             -> окно лабы 1
+cargo run --locked --example capture                  -> exit 0, лабы 1 -> 2 -> 3 через F2 и F3, 11 кадров PNG
+Адаптер: llvmpipe (Mesa 25.2.8, Vulkan).
+
+Консоль примера capture:
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab01_blue.png
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab01_red.png
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab01_purple.png
+[labs] переход: Lab1 -> Lab2
+[glam] a = [2, 0, 0], b = [0, 3, 0]
+[glam] a + b = [2, 3, 0], a - b = [2, -3, 0], a * 2 = [4, 0, 0]
+[glam] normalize(a) = [1, 0, 0], |a| = 2, distance(a, b) = 3.6056
+[glam] dot(a, b) = 0, cross(a, b) = [0, 0, 6]
+[glam] M^-1 * M = E: true, M^T строка 4 = [1, 2, 3, 1]
+[keyboard] индекс = 0, RGB = (1.00, 1.00, 1.00)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_1_white.png
+[keyboard] индекс = 1, RGB = (0.00, 0.00, 1.00)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_2_blue.png
+[keyboard] индекс = 2, RGB = (1.00, 0.00, 0.00)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_3_red.png
+[keyboard] индекс = 3, RGB = (1.00, 1.00, 0.00)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_4_yellow.png
+[keyboard] индекс = 4, RGB = (0.50, 0.00, 0.50)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_5_purple.png
+[keyboard] плавный переход: включён
+[keyboard] индекс = 0, RGB = (1.00, 1.00, 1.00)
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab02_6_transition.png
+[labs] переход: Lab2 -> Lab3
+Создан объект: GraphicObject { position: Vec3(4.0, 0.0, 0.0), angle_deg: 180.0, color: Vec3(1.0, 0.0, 0.0) }, носик Vec3(-1.0, -0.0, -8.742278e-8), в центр: true
+Создан объект: GraphicObject { position: Vec3(-4.0, 0.0, 0.0), angle_deg: 0.0, color: Vec3(0.0, 0.0, 1.0) }, носик Vec3(1.0, 0.0, 0.0), в центр: true
+Создан объект: GraphicObject { position: Vec3(0.0, 0.0, -4.0), angle_deg: 90.0, color: Vec3(0.0, 1.0, 0.0) }, носик Vec3(0.0, 0.0, 0.99999994), в центр: true
+Создан объект: GraphicObject { position: Vec3(0.0, 0.0, 4.0), angle_deg: 270.0, color: Vec3(1.0, 1.0, 1.0) }, носик Vec3(0.0, 0.0, -0.99999994), в центр: true
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab03_scene.png
+[keyboard] обращение вокруг центра: включено
+INFO bevy_render::view::window::screenshot: Screenshot saved to screenshots/lab03_orbit.png
+
+Ограничение: физическая клавиатура недоступна; клавиши проверены автотестами и
+примером capture, который подаёт нажатия через ButtonInput после обработки ввода Bevy.
