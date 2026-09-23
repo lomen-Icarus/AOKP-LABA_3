@@ -27,8 +27,7 @@ cargo run --locked --example capture   # кадры в screenshots/, под Linu
 | Файл | Назначение |
 |---|---|
 | `src/graphic_object.rs` | Модуль GraphicObject: данные размещения, `to_transform`, `to_color`, порождение сущности, пересчёт Transform по изменению |
-| `src/lib.rs` | Плагин Lab03Plugin: список объектов, камера, свет, режим обращения |
-| `src/main.rs` | Создание окна и запуск приложения |
+| `src/main.rs` | Главный файл: подключение модуля, окно, Lab03Plugin, список объектов, камера, свет, режим обращения |
 | `src/tests.rs` | Автотесты геометрии и ECS-систем |
 | `examples/capture.rs` | Получение кадров окна для отчёта |
 

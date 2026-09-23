@@ -2,6 +2,7 @@
 //! (`Transform`) и порождение сущности на сцене.
 //! Аналог пары GraphicObject.h / GraphicObject.cpp из исходной работы.
 
+use bevy::asset::uuid_handle;
 use bevy::prelude::*;
 
 /// Внутренний и внешний радиусы тора-модели (аргументы `Torus::new`).
@@ -11,29 +12,27 @@ const TORUS_OUTER_RADIUS: f32 = 1.0;
 const NOSE_RADIUS: f32 = 0.22;
 const NOSE_LENGTH: f32 = 0.6;
 
-/// Модель. Геометрия хранится в `Assets<Mesh>` один раз,
-/// каждый графический объект получает только handle на неё.
-#[derive(Resource, Clone)]
-pub struct GraphicModel {
-    pub body: Handle<Mesh>,
-    pub nose: Handle<Mesh>,
+/// Модель в хранилище `Assets<Mesh>`. У мешей постоянные идентификаторы (UUID),
+/// поэтому все объекты ссылаются на одну и ту же геометрию: меш создаётся
+/// при первом вызове spawn_graphic_object, а следующие вызовы берут готовый.
+const TORUS_MESH: Handle<Mesh> = uuid_handle!("6f1d3a52-3c1e-4d1b-9a7e-2b5c8e0f4a11");
+const NOSE_MESH: Handle<Mesh> = uuid_handle!("a4c7e9b0-5d2f-4e83-8b16-7f3a9c2d6e54");
+
+/// Регистрирует меш модели, если его ещё нет в хранилище.
+fn ensure_mesh(meshes: &mut Assets<Mesh>, handle: &Handle<Mesh>, build: impl FnOnce() -> Mesh) {
+    if !meshes.contains(handle) {
+        meshes
+            .insert(handle, build())
+            .expect("для UUID-идентификатора вставка не завершается ошибкой");
+    }
 }
 
-impl GraphicModel {
-    pub fn new(meshes: &mut Assets<Mesh>) -> Self {
-        Self {
-            body: meshes.add(Torus::new(TORUS_INNER_RADIUS, TORUS_OUTER_RADIUS)),
-            nose: meshes.add(Cone::new(NOSE_RADIUS, NOSE_LENGTH)),
-        }
-    }
-
-    /// Положение носика в локальной системе координат модели.
-    /// Конус Bevy направлен вершиной вдоль +Y; поворот на −90° вокруг Z
-    /// укладывает его вершиной вдоль +X, сразу за внешним краем тора.
-    pub fn nose_transform() -> Transform {
-        Transform::from_xyz(TORUS_OUTER_RADIUS + NOSE_LENGTH / 2.0, 0.0, 0.0)
-            .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2))
-    }
+/// Положение носика в локальной системе координат модели.
+/// Конус Bevy направлен вершиной вдоль +Y; поворот на −90° вокруг Z
+/// укладывает его вершиной вдоль +X, сразу за внешним краем тора.
+fn nose_transform() -> Transform {
+    Transform::from_xyz(TORUS_OUTER_RADIUS + NOSE_LENGTH / 2.0, 0.0, 0.0)
+        .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2))
 }
 
 /// Графический объект: параметры размещения модели в мировой системе координат.
@@ -125,38 +124,40 @@ pub fn update_visual_system(
 }
 
 /// Порождение сущности на сцене: аналог метода draw.
-/// Тор и носик используют общие меши модели и один материал объекта.
+/// Регистрирует меш модели (один раз на все объекты) и материал объекта,
+/// затем создаёт сущность с компонентами Mesh3d, MeshMaterial3d, Transform
+/// и самим GraphicObject. Носик — дочерняя сущность с тем же материалом.
 pub fn spawn_graphic_object(
     commands: &mut Commands,
-    model: &GraphicModel,
-    materials: &mut Assets<StandardMaterial>,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
     object: GraphicObject,
-) -> Entity {
+) {
+    ensure_mesh(meshes, &TORUS_MESH, || {
+        Torus::new(TORUS_INNER_RADIUS, TORUS_OUTER_RADIUS).into()
+    });
+    ensure_mesh(meshes, &NOSE_MESH, || {
+        Cone::new(NOSE_RADIUS, NOSE_LENGTH).into()
+    });
     let material = materials.add(StandardMaterial {
         base_color: object.to_color(),
         perceptual_roughness: 0.4,
         ..default()
     });
-    let transform = object.to_transform();
     println!(
-        "[scene] создан объект: позиция {:?}, угол {:.0}°, цвет {:?}, носик {:?}, в центр: {}",
-        object.position,
-        object.angle_deg,
-        object.color,
+        "Создан объект: {object:?}, носик {:?}, в центр: {}",
         object.nose_direction(),
         object.faces(Vec3::ZERO)
     );
-    commands
-        .spawn((
-            Mesh3d(model.body.clone()),
-            MeshMaterial3d(material.clone()),
-            transform,
-            object,
-            children![(
-                Mesh3d(model.nose.clone()),
-                MeshMaterial3d(material),
-                GraphicModel::nose_transform(),
-            )],
-        ))
-        .id()
+    commands.spawn((
+        Mesh3d(TORUS_MESH),
+        MeshMaterial3d(material.clone()),
+        object.to_transform(),
+        object,
+        children![(
+            Mesh3d(NOSE_MESH),
+            MeshMaterial3d(material),
+            nose_transform()
+        )],
+    ));
 }

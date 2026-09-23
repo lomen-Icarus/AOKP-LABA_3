@@ -4,7 +4,13 @@
 
 use bevy::prelude::*;
 use bevy::render::view::window::screenshot::{Screenshot, save_to_disk};
-use bevy_lab03_scene_objects::{Lab03Plugin, keyboard_system};
+// Подключаем главный файл программы как модуль: тот же плагин, те же системы.
+// Его собственная функция main здесь не вызывается.
+#[allow(dead_code)]
+#[path = "../src/main.rs"]
+mod app;
+
+use app::{Lab03Plugin, keyboard_system};
 
 const SCENE_FRAME: u32 = 40;
 const ORBIT_ON_FRAME: u32 = 60;
