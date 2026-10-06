@@ -274,27 +274,23 @@ pub fn simulation_system(
 }
 
 /// Система визуализации: только читает палитру и переносит цвет в материал.
-/// В мгновенном режиме работает лишь при изменении палитры, в плавном —
-/// каждый кадр до конца перехода.
+/// В обычном режиме работает лишь при изменении палитры. В плавном режиме
+/// (доп. задание 2) работает каждый кадр и выводит промежуточный цвет.
 pub fn update_visual_system(
     palette: Res<ColorPalette>,
     timer: Res<AutoColorTimer>,
     settings: Res<VisualSettings>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     query: Query<&MeshMaterial3d<StandardMaterial>, With<LabObject>>,
-    mut was_transition: Local<bool>,
 ) {
-    let t = timer.0.elapsed_secs() / TRANSITION_SECS;
-    let transition = settings.smooth && t < 1.0;
-    // Кадр после окончания перехода тоже записывается: цвет доходит до точного значения.
-    if !(transition || *was_transition || palette.is_changed() || settings.is_changed()) {
-        return;
-    }
-    *was_transition = transition;
-    let rgb = if transition {
+    let rgb = if settings.smooth {
+        // Доля перехода: 0 сразу после смены цвета, 1 через TRANSITION_SECS.
+        let t = timer.0.elapsed_secs() / TRANSITION_SECS;
         palette.blended_rgb(t)
-    } else {
+    } else if palette.is_changed() || settings.is_changed() {
         palette.current_rgb()
+    } else {
+        return;
     };
     for handle in &query {
         if let Some(mut material) = materials.get_mut(handle.id()) {
