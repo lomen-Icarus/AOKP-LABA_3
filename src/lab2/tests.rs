@@ -39,7 +39,6 @@ fn press(app: &mut App, key: KeyCode) {
     super::super::tests::press(app, &[key]);
 }
 
-/// Продвигает время до ближайшей смены индекса и возвращает момент смены.
 fn run_until_change(app: &mut App) -> f32 {
     let start = index(app);
     for _ in 0..1000 {
@@ -108,8 +107,6 @@ fn change_rate_does_not_depend_on_frame_rate() {
 
 #[test]
 fn long_frame_is_clamped_by_virtual_time() {
-    // Res<Time> в Update — виртуальное время: за кадр не больше 250 мс.
-    // Зависание на 2,5 с не «проматывает» палитру на два цвета вперёд.
     let mut app = test_app(2_500);
     let before = elapsed(&app);
     app.update();
@@ -140,7 +137,6 @@ fn smooth_mode_interpolates_and_settles_on_target() {
     let mut app = test_app(100);
     press(&mut app, KeyCode::KeyL);
     run_until_change(&mut app);
-    // В кадре смены переход только начался (t ≈ 0); через 0,1 с цвет промежуточный.
     app.update();
     let mid = material_rgb(&mut app);
     assert!(
