@@ -6,7 +6,6 @@ fn test_app() -> App {
     super::super::tests::test_app(super::super::Lab::Lab3, 100)
 }
 
-/// Направление носика: локальная ось +X после поворота объекта.
 fn nose(transform: &Transform) -> Vec3 {
     transform.rotation * Vec3::X
 }
@@ -43,7 +42,6 @@ fn transform_is_translation_and_clockwise_rotation() {
             .abs_diff_eq(Quat::from_rotation_y(-90f32.to_radians()), EPS)
     );
     assert!(transform.scale.abs_diff_eq(Vec3::ONE, EPS));
-    // Вершина модели (1, 0, 0) после матрицы модели оказывается ближе к центру.
     let world_point = transform.transform_point(Vec3::X);
     assert!(world_point.abs_diff_eq(Vec3::new(0.0, 0.0, -3.0), EPS));
 }
@@ -75,7 +73,6 @@ fn scene_has_four_objects_with_their_transforms() {
                 .abs_diff_eq(object.to_transform().rotation, EPS)
         );
     }
-    // У каждого объекта тор и носик.
     let meshes = app.world_mut().query::<&Mesh3d>().iter(app.world()).count();
     assert_eq!(meshes, 8);
 }
